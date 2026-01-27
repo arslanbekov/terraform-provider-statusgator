@@ -187,8 +187,10 @@ func (r *ServiceMonitorResource) Read(ctx context.Context, req resource.ReadRequ
 
 func (r *ServiceMonitorResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data ServiceMonitorResourceModel
+	var state ServiceMonitorResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -203,7 +205,7 @@ func (r *ServiceMonitorResource) Update(ctx context.Context, req resource.Update
 		"monitor_id": data.ID.ValueString(),
 	})
 
-	monitor, err := r.client.ServiceMonitors.Update(ctx, data.BoardID.ValueString(), data.ID.ValueString(), updateReq)
+	_, err := r.client.ServiceMonitors.Update(ctx, data.BoardID.ValueString(), data.ID.ValueString(), updateReq)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating StatusGator Service Monitor",
@@ -212,12 +214,45 @@ func (r *ServiceMonitorResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	data.Name = types.StringValue(monitor.DisplayName)
-	data.ServiceID = types.StringValue(monitor.GetServiceID())
-	data.ServiceName = types.StringValue(monitor.GetServiceName())
-	data.Status = types.StringValue(string(monitor.FilteredStatus))
-	if monitor.Group != nil {
-		data.GroupID = types.StringValue(monitor.Group.ID)
+	// API returns incomplete response on PATCH, so we need to refresh from List
+	monitors, _, err := r.client.Monitors.List(ctx, data.BoardID.ValueString(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading StatusGator Service Monitor after Update",
+			fmt.Sprintf("Could not list monitors: %s", err.Error()),
+		)
+		return
+	}
+
+	var found bool
+	for _, m := range monitors {
+		if m.ID == data.ID.ValueString() && m.MonitorType == statusgator.MonitorTypeService {
+			found = true
+			data.Name = types.StringValue(m.DisplayName)
+			data.Status = types.StringValue(string(m.FilteredStatus))
+			if m.Service != nil {
+				data.ServiceID = types.StringValue(m.Service.ID)
+				data.ServiceName = types.StringValue(m.Service.Name)
+			} else {
+				// Preserve from state if not in response
+				data.ServiceID = state.ServiceID
+				data.ServiceName = state.ServiceName
+			}
+			if m.Group != nil {
+				data.GroupID = types.StringValue(m.Group.ID)
+			} else {
+				data.GroupID = types.StringNull()
+			}
+			break
+		}
+	}
+
+	if !found {
+		resp.Diagnostics.AddError(
+			"Error Reading StatusGator Service Monitor after Update",
+			fmt.Sprintf("Monitor ID %s not found after update", data.ID.ValueString()),
+		)
+		return
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

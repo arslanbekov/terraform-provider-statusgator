@@ -287,8 +287,10 @@ func (r *WebsiteMonitorResource) Read(ctx context.Context, req resource.ReadRequ
 
 func (r *WebsiteMonitorResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data WebsiteMonitorResourceModel
+	var state WebsiteMonitorResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -331,7 +333,7 @@ func (r *WebsiteMonitorResource) Update(ctx context.Context, req resource.Update
 		"monitor_id": data.ID.ValueString(),
 	})
 
-	monitor, err := r.client.WebsiteMonitors.Update(ctx, data.BoardID.ValueString(), data.ID.ValueString(), updateReq)
+	_, err := r.client.WebsiteMonitors.Update(ctx, data.BoardID.ValueString(), data.ID.ValueString(), updateReq)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Updating StatusGator Website Monitor",
@@ -340,7 +342,45 @@ func (r *WebsiteMonitorResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	r.mapMonitorToModel(ctx, monitor, &data, &resp.Diagnostics)
+	// API returns incomplete response on PATCH, so we refresh from List
+	// and preserve planned values for fields not returned by List API
+	monitors, _, err := r.client.Monitors.List(ctx, data.BoardID.ValueString(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error Reading StatusGator Website Monitor after Update",
+			fmt.Sprintf("Could not list monitors: %s", err.Error()),
+		)
+		return
+	}
+
+	var found bool
+	for _, m := range monitors {
+		if m.ID == data.ID.ValueString() && m.MonitorType == statusgator.MonitorTypeWebsite {
+			found = true
+			// Update only fields available from List response
+			data.Name = types.StringValue(m.DisplayName)
+			data.Status = types.StringValue(string(m.FilteredStatus))
+			data.Paused = types.BoolValue(m.IsPaused())
+			if m.Group != nil {
+				data.GroupID = types.StringValue(m.Group.ID)
+			} else {
+				data.GroupID = types.StringNull()
+			}
+			// URL, CheckInterval, HTTPMethod, ExpectedStatus, Timeout,
+			// FollowRedirects, Headers, Regions, ContentMatch are preserved from plan
+			// since List API doesn't return these details
+			break
+		}
+	}
+
+	if !found {
+		resp.Diagnostics.AddError(
+			"Error Reading StatusGator Website Monitor after Update",
+			fmt.Sprintf("Monitor ID %s not found after update", data.ID.ValueString()),
+		)
+		return
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
