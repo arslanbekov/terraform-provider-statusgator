@@ -1,0 +1,69 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature!
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Request Type
+      description: What type of feature are you requesting?
+      options:
+        - New Resource
+        - New Data Source
+        - New Attribute
+        - Enhancement to existing resource
+        - Documentation improvement
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: resource
+    attributes:
+      label: Resource/Data Source
+      description: Which resource or data source does this relate to?
+      placeholder: "statusgator_website_monitor"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the feature you'd like
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: What problem does this solve? Why is this needed?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed Configuration
+      description: How would you expect to use this feature in Terraform?
+      render: hcl
+      placeholder: |
+        resource "statusgator_new_resource" "example" {
+          attribute = "value"
+        }
+
+  - type: textarea
+    id: api
+    attributes:
+      label: StatusGator API Reference
+      description: Link to relevant StatusGator API documentation if applicable
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any additional context or screenshots

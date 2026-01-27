@@ -1,0 +1,106 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug!
+
+  - type: input
+    id: terraform-version
+    attributes:
+      label: Terraform Version
+      description: Output of `terraform version`
+      placeholder: "1.5.0"
+    validations:
+      required: true
+
+  - type: input
+    id: provider-version
+    attributes:
+      label: Provider Version
+      description: Version of terraform-provider-statusgator
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: resource
+    attributes:
+      label: Affected Resource(s)
+      description: Which resource or data source is affected?
+      multiple: true
+      options:
+        - statusgator_monitor_group
+        - statusgator_website_monitor
+        - statusgator_ping_monitor
+        - statusgator_custom_monitor
+        - statusgator_service_monitor
+        - statusgator_subscriber
+        - statusgator_incident
+        - statusgator_board (data source)
+        - statusgator_boards (data source)
+        - Provider configuration
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: terraform-config
+    attributes:
+      label: Terraform Configuration
+      description: Please provide the relevant Terraform configuration
+      render: hcl
+      placeholder: |
+        resource "statusgator_website_monitor" "example" {
+          board_id       = "..."
+          name           = "..."
+          url            = "..."
+          check_interval = 5
+        }
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Please list the steps to reproduce the issue
+      placeholder: |
+        1. terraform init
+        2. terraform plan
+        3. terraform apply
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug Logs
+      description: |
+        Please provide debug logs if available.
+        Run with `TF_LOG=DEBUG terraform apply` to get debug output.
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any additional context about the problem

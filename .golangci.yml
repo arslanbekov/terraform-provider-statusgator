@@ -1,0 +1,27 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gofmt
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+linters-settings:
+  errcheck:
+    exclude-functions:
+      - encoding/json.Marshal
+      - encoding/json.MarshalIndent
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck

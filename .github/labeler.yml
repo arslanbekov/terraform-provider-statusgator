@@ -1,0 +1,43 @@
+# Provider core
+provider:
+  - changed-files:
+      - any-glob-to-any-file: 'internal/provider/provider*.go'
+
+# Resources
+resources:
+  - changed-files:
+      - any-glob-to-any-file: 'internal/provider/*_resource*.go'
+
+# Data sources
+data-sources:
+  - changed-files:
+      - any-glob-to-any-file: 'internal/provider/*_data_source*.go'
+
+# Documentation
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**/*'
+          - 'templates/**/*'
+          - 'examples/**/*'
+          - '*.md'
+
+# Tests
+tests:
+  - changed-files:
+      - any-glob-to-any-file: '**/*_test.go'
+
+# CI/CD
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**/*'
+          - '.goreleaser.yml'
+          - 'GNUmakefile'
+
+# Dependencies
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'go.mod'
+          - 'go.sum'

@@ -1,0 +1,38 @@
+---
+page_title: "StatusGator Provider"
+subcategory: ""
+description: |-
+  Terraform provider for managing StatusGator status pages, monitors, and incidents.
+---
+
+# StatusGator Provider
+
+The StatusGator provider allows you to manage [StatusGator](https://statusgator.com) resources using Terraform. StatusGator is a status page aggregator that helps you monitor the status of third-party services and create your own status pages.
+
+## Features
+
+- **Monitor Groups**: Organize monitors into logical groups
+- **Website Monitors**: Monitor HTTP endpoints with customizable checks
+- **Ping Monitors**: Monitor servers via ICMP ping
+- **Custom Monitors**: Create monitors with manually-controlled status
+- **Service Monitors**: Track external status pages (AWS, GitHub, etc.)
+- **Subscribers**: Manage email subscribers for status updates
+- **Incidents**: Create and manage incidents and maintenance windows
+
+## Example Usage
+
+{{ tffile "examples/provider/provider.tf" }}
+
+## Authentication
+
+The provider requires an API token for authentication. You can obtain an API token from your StatusGator account settings.
+
+### Environment Variables
+
+You can provide the API token via environment variable:
+
+```shell
+export STATUSGATOR_API_TOKEN="your-api-token"
+```
+
+{{ .SchemaMarkdown | trimspace }}

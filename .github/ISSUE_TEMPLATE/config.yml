@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://registry.terraform.io/providers/arslanbekov/statusgator/latest/docs
+    about: Check the provider documentation
+  - name: StatusGator API Docs
+    url: https://statusgator.com/api/v3/docs
+    about: StatusGator API documentation
