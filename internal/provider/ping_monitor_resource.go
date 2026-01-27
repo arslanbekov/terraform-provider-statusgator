@@ -126,10 +126,10 @@ func (r *PingMonitorResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	createReq := &statusgator.PingMonitorRequest{
-		Name:          data.Name.ValueString(),
-		Host:          data.Host.ValueString(),
-		CheckInterval: int(data.CheckInterval.ValueInt64()),
-		GroupID:       data.GroupID.ValueString(),
+		Name:     data.Name.ValueString(),
+		Address:  data.Host.ValueString(),
+		Interval: int(data.CheckInterval.ValueInt64()),
+		GroupID:  data.GroupID.ValueString(),
 	}
 
 	// Convert regions
@@ -189,9 +189,9 @@ func (r *PingMonitorResource) Read(ctx context.Context, req resource.ReadRequest
 			found = true
 			data.Name = types.StringValue(m.Name)
 			data.Status = types.StringValue(string(m.Status))
-			data.Paused = types.BoolValue(m.Paused)
-			if m.GroupID != nil {
-				data.GroupID = types.StringValue(*m.GroupID)
+			data.Paused = types.BoolValue(m.IsPaused())
+			if m.Group != nil {
+				data.GroupID = types.StringValue(m.Group.ID)
 			} else {
 				data.GroupID = types.StringNull()
 			}
@@ -216,10 +216,10 @@ func (r *PingMonitorResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	updateReq := &statusgator.PingMonitorRequest{
-		Name:          data.Name.ValueString(),
-		Host:          data.Host.ValueString(),
-		CheckInterval: int(data.CheckInterval.ValueInt64()),
-		GroupID:       data.GroupID.ValueString(),
+		Name:     data.Name.ValueString(),
+		Address:  data.Host.ValueString(),
+		Interval: int(data.CheckInterval.ValueInt64()),
+		GroupID:  data.GroupID.ValueString(),
 	}
 
 	// Convert regions
@@ -282,13 +282,13 @@ func (r *PingMonitorResource) ImportState(ctx context.Context, req resource.Impo
 func (r *PingMonitorResource) mapMonitorToModel(monitor *statusgator.PingMonitor, data *PingMonitorResourceModel, diags *diag.Diagnostics) {
 	data.ID = types.StringValue(monitor.ID)
 	data.Name = types.StringValue(monitor.Name)
-	data.Host = types.StringValue(monitor.Host)
-	data.CheckInterval = types.Int64Value(int64(monitor.CheckInterval))
+	data.Host = types.StringValue(monitor.Address)
+	data.CheckInterval = types.Int64Value(int64(monitor.Interval))
 	data.Status = types.StringValue(string(monitor.Status))
-	data.Paused = types.BoolValue(monitor.Paused)
+	data.Paused = types.BoolValue(monitor.IsPaused())
 
-	if monitor.GroupID != nil {
-		data.GroupID = types.StringValue(*monitor.GroupID)
+	if monitor.Group != nil {
+		data.GroupID = types.StringValue(monitor.Group.ID)
 	} else {
 		data.GroupID = types.StringNull()
 	}

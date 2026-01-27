@@ -267,9 +267,9 @@ func (r *WebsiteMonitorResource) Read(ctx context.Context, req resource.ReadRequ
 			// Only update fields available in the generic Monitor response
 			data.Name = types.StringValue(m.Name)
 			data.Status = types.StringValue(string(m.Status))
-			data.Paused = types.BoolValue(m.Paused)
-			if m.GroupID != nil {
-				data.GroupID = types.StringValue(*m.GroupID)
+			data.Paused = types.BoolValue(m.IsPaused())
+			if m.Group != nil {
+				data.GroupID = types.StringValue(m.Group.ID)
 			} else {
 				data.GroupID = types.StringNull()
 			}
@@ -383,7 +383,7 @@ func (r *WebsiteMonitorResource) mapMonitorToModel(ctx context.Context, monitor 
 	data.Timeout = types.Int64Value(int64(monitor.Timeout))
 	data.FollowRedirects = types.BoolValue(monitor.FollowRedirects)
 	data.Status = types.StringValue(string(monitor.Status))
-	data.Paused = types.BoolValue(monitor.Paused)
+	data.Paused = types.BoolValue(monitor.IsPaused())
 
 	if monitor.ContentMatch != "" {
 		data.ContentMatch = types.StringValue(monitor.ContentMatch)
@@ -391,8 +391,8 @@ func (r *WebsiteMonitorResource) mapMonitorToModel(ctx context.Context, monitor 
 		data.ContentMatch = types.StringNull()
 	}
 
-	if monitor.GroupID != nil {
-		data.GroupID = types.StringValue(*monitor.GroupID)
+	if monitor.Group != nil {
+		data.GroupID = types.StringValue(monitor.Group.ID)
 	} else {
 		data.GroupID = types.StringNull()
 	}

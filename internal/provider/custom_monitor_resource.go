@@ -131,10 +131,14 @@ func (r *CustomMonitorResource) Create(ctx context.Context, req resource.CreateR
 
 	data.ID = types.StringValue(monitor.ID)
 	data.Name = types.StringValue(monitor.Name)
-	data.Description = types.StringValue(monitor.Description)
+	if monitor.Description != nil {
+		data.Description = types.StringValue(*monitor.Description)
+	} else {
+		data.Description = types.StringNull()
+	}
 	data.Status = types.StringValue(string(monitor.Status))
-	if monitor.GroupID != nil {
-		data.GroupID = types.StringValue(*monitor.GroupID)
+	if monitor.Group != nil {
+		data.GroupID = types.StringValue(monitor.Group.ID)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -168,8 +172,8 @@ func (r *CustomMonitorResource) Read(ctx context.Context, req resource.ReadReque
 			found = true
 			data.Name = types.StringValue(m.Name)
 			data.Status = types.StringValue(string(m.Status))
-			if m.GroupID != nil {
-				data.GroupID = types.StringValue(*m.GroupID)
+			if m.Group != nil {
+				data.GroupID = types.StringValue(m.Group.ID)
 			} else {
 				data.GroupID = types.StringNull()
 			}
@@ -215,10 +219,14 @@ func (r *CustomMonitorResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	data.Name = types.StringValue(monitor.Name)
-	data.Description = types.StringValue(monitor.Description)
+	if monitor.Description != nil {
+		data.Description = types.StringValue(*monitor.Description)
+	} else {
+		data.Description = types.StringNull()
+	}
 	data.Status = types.StringValue(string(monitor.Status))
-	if monitor.GroupID != nil {
-		data.GroupID = types.StringValue(*monitor.GroupID)
+	if monitor.Group != nil {
+		data.GroupID = types.StringValue(monitor.Group.ID)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

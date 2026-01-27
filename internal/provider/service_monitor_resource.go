@@ -130,11 +130,11 @@ func (r *ServiceMonitorResource) Create(ctx context.Context, req resource.Create
 
 	data.ID = types.StringValue(monitor.ID)
 	data.Name = types.StringValue(monitor.Name)
-	data.ServiceID = types.StringValue(monitor.ServiceID)
-	data.ServiceName = types.StringValue(monitor.ServiceName)
+	data.ServiceID = types.StringValue(monitor.GetServiceID())
+	data.ServiceName = types.StringValue(monitor.GetServiceName())
 	data.Status = types.StringValue(string(monitor.Status))
-	if monitor.GroupID != nil {
-		data.GroupID = types.StringValue(*monitor.GroupID)
+	if monitor.Group != nil {
+		data.GroupID = types.StringValue(monitor.Group.ID)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -168,8 +168,8 @@ func (r *ServiceMonitorResource) Read(ctx context.Context, req resource.ReadRequ
 			found = true
 			data.Name = types.StringValue(m.Name)
 			data.Status = types.StringValue(string(m.Status))
-			if m.GroupID != nil {
-				data.GroupID = types.StringValue(*m.GroupID)
+			if m.Group != nil {
+				data.GroupID = types.StringValue(m.Group.ID)
 			} else {
 				data.GroupID = types.StringNull()
 			}
@@ -213,11 +213,11 @@ func (r *ServiceMonitorResource) Update(ctx context.Context, req resource.Update
 	}
 
 	data.Name = types.StringValue(monitor.Name)
-	data.ServiceID = types.StringValue(monitor.ServiceID)
-	data.ServiceName = types.StringValue(monitor.ServiceName)
+	data.ServiceID = types.StringValue(monitor.GetServiceID())
+	data.ServiceName = types.StringValue(monitor.GetServiceName())
 	data.Status = types.StringValue(string(monitor.Status))
-	if monitor.GroupID != nil {
-		data.GroupID = types.StringValue(*monitor.GroupID)
+	if monitor.Group != nil {
+		data.GroupID = types.StringValue(monitor.Group.ID)
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
