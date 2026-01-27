@@ -11,9 +11,6 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-
-formatters:
-  enable:
     - gofmt
 
 linters-settings:
