@@ -9,8 +9,8 @@ github.com/agext/levenshtein v1.2.2/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki
 github.com/apparentlymart/go-textseg/v12 v12.0.0/go.mod h1:S/4uRK2UtaQttw1GenVJEynmyUenKwP++x/+DdGV/Ec=
 github.com/apparentlymart/go-textseg/v15 v15.0.0 h1:uYvfpb3DyLSCGWnctWKGj857c6ew1u1fNQOlOtuGxQY=
 github.com/apparentlymart/go-textseg/v15 v15.0.0/go.mod h1:K8XmNZdhEBkdlyDdvbmmsvpAG721bKi0joRfFdHIWJ4=
-github.com/arslanbekov/statusgator-go-client v1.0.1 h1:b/MmhXL4mDJY/YGBLvTLW28ZIT39RN/zvqekjr9xaXE=
-github.com/arslanbekov/statusgator-go-client v1.0.1/go.mod h1:jjm3XLUJ9MZw741z9eXigE6eCwqkiV0ISIvwQsEG6mY=
+github.com/arslanbekov/statusgator-go-client v1.0.2 h1:qxxFxdr3YBqjUroAu2ehP9kzeGvvKPkS6eHktlpMfZk=
+github.com/arslanbekov/statusgator-go-client v1.0.2/go.mod h1:jjm3XLUJ9MZw741z9eXigE6eCwqkiV0ISIvwQsEG6mY=
 github.com/bufbuild/protocompile v0.14.1 h1:iA73zAf/fyljNjQKwYzUHD6AD4R8KMasmwa/FBatYVw=
 github.com/bufbuild/protocompile v0.14.1/go.mod h1:ppVdAIhbr2H8asPk6k4pY7t9zB1OU5DoEw9xY/FUi1c=
 github.com/cloudflare/circl v1.6.1 h1:zqIqSPIndyBh1bjLVVDHMPpVKqp8Su/V+6MeDzzQBQ0=

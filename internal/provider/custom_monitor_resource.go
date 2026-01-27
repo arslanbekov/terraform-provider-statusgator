@@ -130,13 +130,13 @@ func (r *CustomMonitorResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	data.ID = types.StringValue(monitor.ID)
-	data.Name = types.StringValue(monitor.Name)
+	data.Name = types.StringValue(monitor.DisplayName)
 	if monitor.Description != nil {
 		data.Description = types.StringValue(*monitor.Description)
 	} else {
 		data.Description = types.StringNull()
 	}
-	data.Status = types.StringValue(string(monitor.Status))
+	data.Status = types.StringValue(string(monitor.FilteredStatus))
 	if monitor.Group != nil {
 		data.GroupID = types.StringValue(monitor.Group.ID)
 	}
@@ -168,10 +168,10 @@ func (r *CustomMonitorResource) Read(ctx context.Context, req resource.ReadReque
 
 	var found bool
 	for _, m := range monitors {
-		if m.ID == data.ID.ValueString() && m.Type == statusgator.MonitorTypeCustom {
+		if m.ID == data.ID.ValueString() && m.MonitorType == statusgator.MonitorTypeCustom {
 			found = true
-			data.Name = types.StringValue(m.Name)
-			data.Status = types.StringValue(string(m.Status))
+			data.Name = types.StringValue(m.DisplayName)
+			data.Status = types.StringValue(string(m.FilteredStatus))
 			if m.Group != nil {
 				data.GroupID = types.StringValue(m.Group.ID)
 			} else {
@@ -218,13 +218,13 @@ func (r *CustomMonitorResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	data.Name = types.StringValue(monitor.Name)
+	data.Name = types.StringValue(monitor.DisplayName)
 	if monitor.Description != nil {
 		data.Description = types.StringValue(*monitor.Description)
 	} else {
 		data.Description = types.StringNull()
 	}
-	data.Status = types.StringValue(string(monitor.Status))
+	data.Status = types.StringValue(string(monitor.FilteredStatus))
 	if monitor.Group != nil {
 		data.GroupID = types.StringValue(monitor.Group.ID)
 	}

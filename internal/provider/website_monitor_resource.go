@@ -262,11 +262,11 @@ func (r *WebsiteMonitorResource) Read(ctx context.Context, req resource.ReadRequ
 
 	var found bool
 	for _, m := range monitors {
-		if m.ID == data.ID.ValueString() && m.Type == statusgator.MonitorTypeWebsite {
+		if m.ID == data.ID.ValueString() && m.MonitorType == statusgator.MonitorTypeWebsite {
 			found = true
 			// Only update fields available in the generic Monitor response
-			data.Name = types.StringValue(m.Name)
-			data.Status = types.StringValue(string(m.Status))
+			data.Name = types.StringValue(m.DisplayName)
+			data.Status = types.StringValue(string(m.FilteredStatus))
 			data.Paused = types.BoolValue(m.IsPaused())
 			if m.Group != nil {
 				data.GroupID = types.StringValue(m.Group.ID)
@@ -375,18 +375,18 @@ func (r *WebsiteMonitorResource) ImportState(ctx context.Context, req resource.I
 
 func (r *WebsiteMonitorResource) mapMonitorToModel(ctx context.Context, monitor *statusgator.WebsiteMonitor, data *WebsiteMonitorResourceModel, diags *diag.Diagnostics) {
 	data.ID = types.StringValue(monitor.ID)
-	data.Name = types.StringValue(monitor.Name)
+	data.Name = types.StringValue(monitor.DisplayName)
 	data.URL = types.StringValue(monitor.URL)
 	data.CheckInterval = types.Int64Value(int64(monitor.CheckInterval))
 	data.HTTPMethod = types.StringValue(monitor.HTTPMethod)
-	data.ExpectedStatus = types.Int64Value(int64(monitor.ExpectedStatus))
+	// Note: ExpectedStatus is not returned by API, preserve from plan/state
 	data.Timeout = types.Int64Value(int64(monitor.Timeout))
 	data.FollowRedirects = types.BoolValue(monitor.FollowRedirects)
-	data.Status = types.StringValue(string(monitor.Status))
+	data.Status = types.StringValue(string(monitor.FilteredStatus))
 	data.Paused = types.BoolValue(monitor.IsPaused())
 
-	if monitor.ContentMatch != "" {
-		data.ContentMatch = types.StringValue(monitor.ContentMatch)
+	if monitor.Content != "" {
+		data.ContentMatch = types.StringValue(monitor.Content)
 	} else {
 		data.ContentMatch = types.StringNull()
 	}
@@ -397,23 +397,16 @@ func (r *WebsiteMonitorResource) mapMonitorToModel(ctx context.Context, monitor 
 		data.GroupID = types.StringNull()
 	}
 
-	// Convert headers
-	if len(monitor.Headers) > 0 {
-		headerElements := make(map[string]attr.Value)
-		for k, v := range monitor.Headers {
-			headerElements[k] = types.StringValue(v)
-		}
-		headerMap, d := types.MapValue(types.StringType, headerElements)
-		diags.Append(d...)
-		data.Headers = headerMap
-	} else {
+	// Note: API returns request_headers as []string, but provider uses map
+	// Headers are preserved from state since API format differs
+	if data.Headers.IsNull() || data.Headers.IsUnknown() {
 		data.Headers = types.MapNull(types.StringType)
 	}
 
-	// Convert regions
-	if len(monitor.Regions) > 0 {
-		regionElements := make([]attr.Value, len(monitor.Regions))
-		for i, region := range monitor.Regions {
+	// Convert regions from check_regions
+	if len(monitor.CheckRegions) > 0 {
+		regionElements := make([]attr.Value, len(monitor.CheckRegions))
+		for i, region := range monitor.CheckRegions {
 			regionElements[i] = types.StringValue(region)
 		}
 		regionList, d := types.ListValue(types.StringType, regionElements)

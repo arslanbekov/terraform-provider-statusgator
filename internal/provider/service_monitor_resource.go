@@ -129,10 +129,10 @@ func (r *ServiceMonitorResource) Create(ctx context.Context, req resource.Create
 	}
 
 	data.ID = types.StringValue(monitor.ID)
-	data.Name = types.StringValue(monitor.Name)
+	data.Name = types.StringValue(monitor.DisplayName)
 	data.ServiceID = types.StringValue(monitor.GetServiceID())
 	data.ServiceName = types.StringValue(monitor.GetServiceName())
-	data.Status = types.StringValue(string(monitor.Status))
+	data.Status = types.StringValue(string(monitor.FilteredStatus))
 	if monitor.Group != nil {
 		data.GroupID = types.StringValue(monitor.Group.ID)
 	}
@@ -164,10 +164,10 @@ func (r *ServiceMonitorResource) Read(ctx context.Context, req resource.ReadRequ
 
 	var found bool
 	for _, m := range monitors {
-		if m.ID == data.ID.ValueString() && m.Type == statusgator.MonitorTypeService {
+		if m.ID == data.ID.ValueString() && m.MonitorType == statusgator.MonitorTypeService {
 			found = true
-			data.Name = types.StringValue(m.Name)
-			data.Status = types.StringValue(string(m.Status))
+			data.Name = types.StringValue(m.DisplayName)
+			data.Status = types.StringValue(string(m.FilteredStatus))
 			if m.Group != nil {
 				data.GroupID = types.StringValue(m.Group.ID)
 			} else {
@@ -212,10 +212,10 @@ func (r *ServiceMonitorResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	data.Name = types.StringValue(monitor.Name)
+	data.Name = types.StringValue(monitor.DisplayName)
 	data.ServiceID = types.StringValue(monitor.GetServiceID())
 	data.ServiceName = types.StringValue(monitor.GetServiceName())
-	data.Status = types.StringValue(string(monitor.Status))
+	data.Status = types.StringValue(string(monitor.FilteredStatus))
 	if monitor.Group != nil {
 		data.GroupID = types.StringValue(monitor.Group.ID)
 	}

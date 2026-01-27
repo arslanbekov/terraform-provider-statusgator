@@ -185,10 +185,10 @@ func (r *PingMonitorResource) Read(ctx context.Context, req resource.ReadRequest
 
 	var found bool
 	for _, m := range monitors {
-		if m.ID == data.ID.ValueString() && m.Type == statusgator.MonitorTypePing {
+		if m.ID == data.ID.ValueString() && m.MonitorType == statusgator.MonitorTypePing {
 			found = true
-			data.Name = types.StringValue(m.Name)
-			data.Status = types.StringValue(string(m.Status))
+			data.Name = types.StringValue(m.DisplayName)
+			data.Status = types.StringValue(string(m.FilteredStatus))
 			data.Paused = types.BoolValue(m.IsPaused())
 			if m.Group != nil {
 				data.GroupID = types.StringValue(m.Group.ID)
@@ -281,10 +281,10 @@ func (r *PingMonitorResource) ImportState(ctx context.Context, req resource.Impo
 
 func (r *PingMonitorResource) mapMonitorToModel(monitor *statusgator.PingMonitor, data *PingMonitorResourceModel, diags *diag.Diagnostics) {
 	data.ID = types.StringValue(monitor.ID)
-	data.Name = types.StringValue(monitor.Name)
+	data.Name = types.StringValue(monitor.DisplayName)
 	data.Host = types.StringValue(monitor.Address)
 	data.CheckInterval = types.Int64Value(int64(monitor.Interval))
-	data.Status = types.StringValue(string(monitor.Status))
+	data.Status = types.StringValue(string(monitor.FilteredStatus))
 	data.Paused = types.BoolValue(monitor.IsPaused())
 
 	if monitor.Group != nil {

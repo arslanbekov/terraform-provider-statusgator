@@ -7,7 +7,6 @@ import (
 
 	"github.com/arslanbekov/statusgator-go-client/statusgator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -30,13 +29,12 @@ type IncidentResource struct {
 type IncidentResourceModel struct {
 	ID           types.String `tfsdk:"id"`
 	BoardID      types.String `tfsdk:"board_id"`
-	Title        types.String `tfsdk:"title"`
-	Message      types.String `tfsdk:"message"`
+	Name         types.String `tfsdk:"name"`
+	Details      types.String `tfsdk:"details"`
 	Severity     types.String `tfsdk:"severity"`
 	Phase        types.String `tfsdk:"phase"`
-	MonitorIDs   types.List   `tfsdk:"monitor_ids"`
-	ScheduledFor types.String `tfsdk:"scheduled_for"`
-	ScheduledEnd types.String `tfsdk:"scheduled_end"`
+	WillStartAt  types.String `tfsdk:"will_start_at"`
+	WillEndAt    types.String `tfsdk:"will_end_at"`
 }
 
 func NewIncidentResource() resource.Resource {
@@ -65,12 +63,12 @@ func (r *IncidentResource) Schema(ctx context.Context, req resource.SchemaReques
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"title": schema.StringAttribute{
-				Description: "The title of the incident.",
+			"name": schema.StringAttribute{
+				Description: "The name of the incident.",
 				Required:    true,
 			},
-			"message": schema.StringAttribute{
-				Description: "The message/description of the incident.",
+			"details": schema.StringAttribute{
+				Description: "The details/description of the incident.",
 				Required:    true,
 			},
 			"severity": schema.StringAttribute{
@@ -87,16 +85,11 @@ func (r *IncidentResource) Schema(ctx context.Context, req resource.SchemaReques
 					stringvalidator.OneOf("investigating", "identified", "monitoring", "resolved", "scheduled", "in_progress", "verifying", "completed"),
 				},
 			},
-			"monitor_ids": schema.ListAttribute{
-				Description: "List of affected monitor IDs.",
-				Optional:    true,
-				ElementType: types.StringType,
-			},
-			"scheduled_for": schema.StringAttribute{
+			"will_start_at": schema.StringAttribute{
 				Description: "Start time for scheduled maintenance (RFC3339 format).",
 				Optional:    true,
 			},
-			"scheduled_end": schema.StringAttribute{
+			"will_end_at": schema.StringAttribute{
 				Description: "End time for scheduled maintenance (RFC3339 format).",
 				Optional:    true,
 			},
@@ -130,50 +123,40 @@ func (r *IncidentResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	createReq := &statusgator.IncidentRequest{
-		Title:    data.Title.ValueString(),
-		Message:  data.Message.ValueString(),
+		Name:     data.Name.ValueString(),
+		Details:  data.Details.ValueString(),
 		Severity: statusgator.IncidentSeverity(data.Severity.ValueString()),
 		Phase:    statusgator.IncidentPhase(data.Phase.ValueString()),
 	}
 
-	// Convert monitor IDs
-	if !data.MonitorIDs.IsNull() {
-		var monitorIDs []string
-		resp.Diagnostics.Append(data.MonitorIDs.ElementsAs(ctx, &monitorIDs, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		createReq.MonitorIDs = monitorIDs
-	}
-
 	// Parse scheduled times
-	if !data.ScheduledFor.IsNull() && data.ScheduledFor.ValueString() != "" {
-		t, err := time.Parse(time.RFC3339, data.ScheduledFor.ValueString())
+	if !data.WillStartAt.IsNull() && data.WillStartAt.ValueString() != "" {
+		t, err := time.Parse(time.RFC3339, data.WillStartAt.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Invalid scheduled_for Format",
-				fmt.Sprintf("Could not parse scheduled_for as RFC3339: %s", err.Error()),
+				"Invalid will_start_at Format",
+				fmt.Sprintf("Could not parse will_start_at as RFC3339: %s", err.Error()),
 			)
 			return
 		}
-		createReq.ScheduledFor = &t
+		createReq.WillStartAt = &t
 	}
 
-	if !data.ScheduledEnd.IsNull() && data.ScheduledEnd.ValueString() != "" {
-		t, err := time.Parse(time.RFC3339, data.ScheduledEnd.ValueString())
+	if !data.WillEndAt.IsNull() && data.WillEndAt.ValueString() != "" {
+		t, err := time.Parse(time.RFC3339, data.WillEndAt.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Invalid scheduled_end Format",
-				fmt.Sprintf("Could not parse scheduled_end as RFC3339: %s", err.Error()),
+				"Invalid will_end_at Format",
+				fmt.Sprintf("Could not parse will_end_at as RFC3339: %s", err.Error()),
 			)
 			return
 		}
-		createReq.ScheduledEnd = &t
+		createReq.WillEndAt = &t
 	}
 
 	tflog.Debug(ctx, "Creating incident", map[string]interface{}{
 		"board_id": data.BoardID.ValueString(),
-		"title":    data.Title.ValueString(),
+		"name":     data.Name.ValueString(),
 		"severity": data.Severity.ValueString(),
 	})
 
@@ -239,7 +222,7 @@ func (r *IncidentResource) Update(ctx context.Context, req resource.UpdateReques
 
 	// Incidents are updated by adding updates, not by modifying the original
 	updateReq := &statusgator.IncidentUpdateRequest{
-		Message: data.Message.ValueString(),
+		Details: data.Details.ValueString(),
 		Phase:   statusgator.IncidentPhase(data.Phase.ValueString()),
 	}
 
@@ -275,7 +258,7 @@ func (r *IncidentResource) Delete(ctx context.Context, req resource.DeleteReques
 
 	// Incidents cannot be deleted, so we resolve them instead
 	resolveReq := &statusgator.IncidentUpdateRequest{
-		Message: "Incident resolved via Terraform",
+		Details: "Incident resolved via Terraform",
 		Phase:   statusgator.IncidentPhaseResolved,
 	}
 
@@ -297,37 +280,20 @@ func (r *IncidentResource) ImportState(ctx context.Context, req resource.ImportS
 
 func (r *IncidentResource) mapIncidentToModel(ctx context.Context, incident *statusgator.Incident, data *IncidentResourceModel, diags *diag.Diagnostics) {
 	data.ID = types.StringValue(incident.ID)
-	data.Title = types.StringValue(incident.Title)
+	data.Name = types.StringValue(incident.Name)
+	data.Details = types.StringValue(incident.Details)
 	data.Severity = types.StringValue(string(incident.Severity))
 	data.Phase = types.StringValue(string(incident.Phase))
 
-	// Get the latest update message if available
-	if len(incident.Updates) > 0 {
-		data.Message = types.StringValue(incident.Updates[0].Message)
-	}
-
-	// Convert monitor IDs
-	if len(incident.MonitorIDs) > 0 {
-		monitorElements := make([]attr.Value, len(incident.MonitorIDs))
-		for i, id := range incident.MonitorIDs {
-			monitorElements[i] = types.StringValue(id)
-		}
-		monitorList, d := types.ListValue(types.StringType, monitorElements)
-		diags.Append(d...)
-		data.MonitorIDs = monitorList
-	} else {
-		data.MonitorIDs = types.ListNull(types.StringType)
-	}
-
 	// Convert scheduled times
-	if incident.ScheduledFor != nil {
-		data.ScheduledFor = types.StringValue(incident.ScheduledFor.Format(time.RFC3339))
+	if incident.WillStartAt != nil {
+		data.WillStartAt = types.StringValue(incident.WillStartAt.Format(time.RFC3339))
 	} else {
-		data.ScheduledFor = types.StringNull()
+		data.WillStartAt = types.StringNull()
 	}
-	if incident.ScheduledEnd != nil {
-		data.ScheduledEnd = types.StringValue(incident.ScheduledEnd.Format(time.RFC3339))
+	if incident.WillEndAt != nil {
+		data.WillEndAt = types.StringValue(incident.WillEndAt.Format(time.RFC3339))
 	} else {
-		data.ScheduledEnd = types.StringNull()
+		data.WillEndAt = types.StringNull()
 	}
 }

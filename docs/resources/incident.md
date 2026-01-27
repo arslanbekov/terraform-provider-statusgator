@@ -16,29 +16,21 @@ Manages a StatusGator incident or maintenance window.
 # Create an incident
 resource "statusgator_incident" "outage" {
   board_id = "my-board-id"
-  title    = "API Outage"
-  message  = "We are investigating reports of API connectivity issues."
+  name     = "API Outage"
+  details  = "We are investigating reports of API connectivity issues."
   severity = "major"
   phase    = "investigating"
-
-  monitor_ids = [
-    statusgator_website_monitor.api.id
-  ]
 }
 
 # Scheduled maintenance window
 resource "statusgator_incident" "maintenance" {
   board_id      = "my-board-id"
-  title         = "Scheduled Database Maintenance"
-  message       = "We will be performing scheduled maintenance on the database."
+  name          = "Scheduled Database Maintenance"
+  details       = "We will be performing scheduled maintenance on the database."
   severity      = "maintenance"
   phase         = "scheduled"
-  scheduled_for = "2025-01-30T02:00:00Z"
-  scheduled_end = "2025-01-30T04:00:00Z"
-
-  monitor_ids = [
-    statusgator_ping_monitor.database.id
-  ]
+  will_start_at = "2025-01-30T02:00:00Z"
+  will_end_at   = "2025-01-30T04:00:00Z"
 }
 ```
 
@@ -48,17 +40,52 @@ resource "statusgator_incident" "maintenance" {
 ### Required
 
 - `board_id` (String) The ID of the board this incident belongs to.
-- `message` (String) The message/description of the incident.
+- `details` (String) The details/description of the incident.
+- `name` (String) The name of the incident.
 - `phase` (String) Phase of the incident: investigating, identified, monitoring, resolved, scheduled, in_progress, verifying, or completed.
 - `severity` (String) Severity of the incident: minor, major, or maintenance.
-- `title` (String) The title of the incident.
 
 ### Optional
 
-- `monitor_ids` (List of String) List of affected monitor IDs.
-- `scheduled_end` (String) End time for scheduled maintenance (RFC3339 format).
-- `scheduled_for` (String) Start time for scheduled maintenance (RFC3339 format).
+- `will_end_at` (String) End time for scheduled maintenance (RFC3339 format).
+- `will_start_at` (String) Start time for scheduled maintenance (RFC3339 format).
 
 ### Read-Only
 
 - `id` (String) The unique identifier of the incident.
+
+## Migration from v1.0.0
+
+If you are upgrading from v1.0.0, you need to update your Terraform configuration:
+
+| Old Attribute | New Attribute |
+|---------------|---------------|
+| `title` | `name` |
+| `message` | `details` |
+| `scheduled_for` | `will_start_at` |
+| `scheduled_end` | `will_end_at` |
+| `monitor_ids` | **Removed** |
+
+Example migration:
+
+```terraform
+# Before (v1.0.0)
+resource "statusgator_incident" "example" {
+  board_id      = "my-board-id"
+  title         = "API Outage"
+  message       = "Investigating issues"
+  severity      = "major"
+  phase         = "investigating"
+  scheduled_for = "2025-01-30T02:00:00Z"
+  monitor_ids   = ["mon-123"]
+}
+
+# After (v1.1.0+)
+resource "statusgator_incident" "example" {
+  board_id      = "my-board-id"
+  name          = "API Outage"
+  details       = "Investigating issues"
+  severity      = "major"
+  phase         = "investigating"
+  will_start_at = "2025-01-30T02:00:00Z"
+}

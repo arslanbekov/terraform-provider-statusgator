@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-01-27
+
+### Changed
+
+- **BREAKING:** Updated to statusgator-go-client v1.0.2 with API field changes
+- **BREAKING:** `statusgator_incident` resource attributes renamed:
+  - `title` → `name`
+  - `message` → `details`
+  - `scheduled_for` → `will_start_at`
+  - `scheduled_end` → `will_end_at`
+- **BREAKING:** `statusgator_incident` resource: removed `monitor_ids` attribute (no longer supported by API)
+
+### Fixed
+
+- Fixed field mappings for all monitor resources to match API v3 response format
+- Internal field renames: `Name` → `DisplayName`, `Status` → `FilteredStatus`, `Type` → `MonitorType`
+- Fixed `group_id` handling to use nested `Group.ID` structure
+
+### Added
+
+- E2E field validation tests for all resource types
+
 ## [1.0.0] - 2025-01-27
 
 ### Added
