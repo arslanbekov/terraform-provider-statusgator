@@ -12,7 +12,8 @@ lint:
 generate: docs
 
 docs:
-	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate -provider-name statusgator
+	go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
+	tfplugindocs generate -provider-name statusgator
 
 fmt:
 	gofmt -s -w .
