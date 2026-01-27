@@ -38,8 +38,8 @@ resource "statusgator_ping_monitor" "database" {
 ### Required
 
 - `board_id` (String) The ID of the board this monitor belongs to.
-- `check_interval` (Number) Check interval in minutes.
-- `host` (String) The host to ping.
+- `check_interval` (Number) Check interval in minutes. Must be between 1 and 1440.
+- `host` (String) The host to ping (hostname or IP address).
 - `name` (String) The name of the monitor.
 
 ### Optional

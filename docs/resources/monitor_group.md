@@ -41,7 +41,7 @@ resource "statusgator_monitor_group" "third_party" {
 ### Optional
 
 - `collapsed` (Boolean) Whether the group is collapsed by default. Defaults to false.
-- `position` (Number) The display position of the group. Defaults to 0.
+- `position` (Number) The display position of the group. Defaults to 0. Must be non-negative.
 
 ### Read-Only
 

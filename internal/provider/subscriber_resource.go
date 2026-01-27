@@ -3,15 +3,15 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/arslanbekov/statusgator-go-client/statusgator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -60,10 +60,16 @@ func (r *SubscriberResource) Schema(ctx context.Context, req resource.SchemaRequ
 				},
 			},
 			"email": schema.StringAttribute{
-				Description: "The email address of the subscriber.",
+				Description: "The email address of the subscriber. Must be a valid email format.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						emailRegex(),
+						"must be a valid email address",
+					),
 				},
 			},
 			"skip_confirmation": schema.BoolAttribute{
@@ -89,7 +95,7 @@ func (r *SubscriberResource) Configure(ctx context.Context, req resource.Configu
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *statusgator.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *statusgator.Client, got: %T", req.ProviderData),
 		)
 		return
 	}
@@ -112,7 +118,6 @@ func (r *SubscriberResource) Create(ctx context.Context, req resource.CreateRequ
 
 	tflog.Debug(ctx, "Creating subscriber", map[string]interface{}{
 		"board_id": data.BoardID.ValueString(),
-		"email":    data.Email.ValueString(),
 	})
 
 	subscriber, err := r.client.Subscribers.Add(ctx, data.BoardID.ValueString(), createReq)
@@ -197,7 +202,7 @@ func (r *SubscriberResource) Delete(ctx context.Context, req resource.DeleteRequ
 
 	err := r.client.Subscribers.DeleteByID(ctx, data.BoardID.ValueString(), data.ID.ValueString())
 	if err != nil {
-		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+		if statusgator.IsNotFound(err) {
 			return
 		}
 		resp.Diagnostics.AddError(
@@ -208,15 +213,5 @@ func (r *SubscriberResource) Delete(ctx context.Context, req resource.DeleteRequ
 }
 
 func (r *SubscriberResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.Split(req.ID, "/")
-	if len(parts) != 2 {
-		resp.Diagnostics.AddError(
-			"Invalid Import ID",
-			fmt.Sprintf("Expected import ID format: board_id/subscriber_id, got: %s", req.ID),
-		)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("board_id"), parts[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+	importBoardChildState(ctx, req, resp)
 }

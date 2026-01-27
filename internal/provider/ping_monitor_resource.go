@@ -3,16 +3,16 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/arslanbekov/statusgator-go-client/statusgator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -69,12 +69,15 @@ func (r *PingMonitorResource) Schema(ctx context.Context, req resource.SchemaReq
 				Required:    true,
 			},
 			"host": schema.StringAttribute{
-				Description: "The host to ping.",
+				Description: "The host to ping (hostname or IP address).",
 				Required:    true,
 			},
 			"check_interval": schema.Int64Attribute{
-				Description: "Check interval in minutes.",
+				Description: "Check interval in minutes. Must be between 1 and 1440.",
 				Required:    true,
+				Validators: []validator.Int64{
+					int64validator.Between(1, 1440),
+				},
 			},
 			"regions": schema.ListAttribute{
 				Description: "List of monitoring regions.",
@@ -106,7 +109,7 @@ func (r *PingMonitorResource) Configure(ctx context.Context, req resource.Config
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *statusgator.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *statusgator.Client, got: %T", req.ProviderData),
 		)
 		return
 	}
@@ -154,7 +157,7 @@ func (r *PingMonitorResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	r.mapMonitorToModel(ctx, monitor, &data, &resp.Diagnostics)
+	r.mapMonitorToModel(monitor, &data, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -243,7 +246,7 @@ func (r *PingMonitorResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	r.mapMonitorToModel(ctx, monitor, &data, &resp.Diagnostics)
+	r.mapMonitorToModel(monitor, &data, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
@@ -262,7 +265,7 @@ func (r *PingMonitorResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	err := r.client.Monitors.Delete(ctx, data.BoardID.ValueString(), data.ID.ValueString())
 	if err != nil {
-		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+		if statusgator.IsNotFound(err) {
 			return
 		}
 		resp.Diagnostics.AddError(
@@ -273,20 +276,10 @@ func (r *PingMonitorResource) Delete(ctx context.Context, req resource.DeleteReq
 }
 
 func (r *PingMonitorResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.Split(req.ID, "/")
-	if len(parts) != 2 {
-		resp.Diagnostics.AddError(
-			"Invalid Import ID",
-			fmt.Sprintf("Expected import ID format: board_id/monitor_id, got: %s", req.ID),
-		)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("board_id"), parts[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+	importBoardChildState(ctx, req, resp)
 }
 
-func (r *PingMonitorResource) mapMonitorToModel(ctx context.Context, monitor *statusgator.PingMonitor, data *PingMonitorResourceModel, diags *diag.Diagnostics) {
+func (r *PingMonitorResource) mapMonitorToModel(monitor *statusgator.PingMonitor, data *PingMonitorResourceModel, diags *diag.Diagnostics) {
 	data.ID = types.StringValue(monitor.ID)
 	data.Name = types.StringValue(monitor.Name)
 	data.Host = types.StringValue(monitor.Host)
@@ -296,6 +289,8 @@ func (r *PingMonitorResource) mapMonitorToModel(ctx context.Context, monitor *st
 
 	if monitor.GroupID != nil {
 		data.GroupID = types.StringValue(*monitor.GroupID)
+	} else {
+		data.GroupID = types.StringNull()
 	}
 
 	// Convert regions
@@ -307,5 +302,7 @@ func (r *PingMonitorResource) mapMonitorToModel(ctx context.Context, monitor *st
 		regionList, d := types.ListValue(types.StringType, regionElements)
 		diags.Append(d...)
 		data.Regions = regionList
+	} else {
+		data.Regions = types.ListNull(types.StringType)
 	}
 }

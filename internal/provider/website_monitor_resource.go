@@ -3,12 +3,12 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/arslanbekov/statusgator-go-client/statusgator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -78,34 +79,52 @@ func (r *WebsiteMonitorResource) Schema(ctx context.Context, req resource.Schema
 				Required:    true,
 			},
 			"url": schema.StringAttribute{
-				Description: "The URL to monitor.",
+				Description: "The URL to monitor. Must be a valid HTTP or HTTPS URL.",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						urlRegex(),
+						"must be a valid HTTP or HTTPS URL",
+					),
+				},
 			},
 			"check_interval": schema.Int64Attribute{
-				Description: "Check interval in minutes.",
+				Description: "Check interval in minutes. Must be between 1 and 1440.",
 				Required:    true,
+				Validators: []validator.Int64{
+					int64validator.Between(1, 1440),
+				},
 			},
 			"http_method": schema.StringAttribute{
 				Description: "HTTP method to use. Defaults to GET.",
 				Optional:    true,
 				Computed:    true,
 				Default:     stringdefault.StaticString("GET"),
+				Validators: []validator.String{
+					stringvalidator.OneOf("GET", "POST", "HEAD", "PUT", "DELETE", "PATCH", "OPTIONS"),
+				},
 			},
 			"expected_status": schema.Int64Attribute{
-				Description: "Expected HTTP status code. Defaults to 200.",
+				Description: "Expected HTTP status code. Defaults to 200. Must be between 100 and 599.",
 				Optional:    true,
 				Computed:    true,
 				Default:     int64default.StaticInt64(200),
+				Validators: []validator.Int64{
+					int64validator.Between(100, 599),
+				},
 			},
 			"content_match": schema.StringAttribute{
 				Description: "String to match in response body.",
 				Optional:    true,
 			},
 			"timeout": schema.Int64Attribute{
-				Description: "Request timeout in seconds. Defaults to 30.",
+				Description: "Request timeout in seconds. Defaults to 30. Must be between 1 and 120.",
 				Optional:    true,
 				Computed:    true,
 				Default:     int64default.StaticInt64(30),
+				Validators: []validator.Int64{
+					int64validator.Between(1, 120),
+				},
 			},
 			"follow_redirects": schema.BoolAttribute{
 				Description: "Whether to follow HTTP redirects. Defaults to true.",
@@ -114,8 +133,9 @@ func (r *WebsiteMonitorResource) Schema(ctx context.Context, req resource.Schema
 				Default:     booldefault.StaticBool(true),
 			},
 			"headers": schema.MapAttribute{
-				Description: "Custom HTTP headers to send.",
+				Description: "Custom HTTP headers to send. Note: Headers may contain sensitive data like authentication tokens.",
 				Optional:    true,
+				Sensitive:   true,
 				ElementType: types.StringType,
 			},
 			"regions": schema.ListAttribute{
@@ -148,7 +168,7 @@ func (r *WebsiteMonitorResource) Configure(ctx context.Context, req resource.Con
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *statusgator.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *statusgator.Client, got: %T", req.ProviderData),
 		)
 		return
 	}
@@ -200,7 +220,6 @@ func (r *WebsiteMonitorResource) Create(ctx context.Context, req resource.Create
 	tflog.Debug(ctx, "Creating website monitor", map[string]interface{}{
 		"board_id": data.BoardID.ValueString(),
 		"name":     data.Name.ValueString(),
-		"url":      data.URL.ValueString(),
 	})
 
 	monitor, err := r.client.WebsiteMonitors.Create(ctx, data.BoardID.ValueString(), createReq)
@@ -229,7 +248,9 @@ func (r *WebsiteMonitorResource) Read(ctx context.Context, req resource.ReadRequ
 		"monitor_id": data.ID.ValueString(),
 	})
 
-	// Website monitors don't have a direct Get, so we list and filter
+	// Note: The StatusGator API doesn't provide a direct Get endpoint for monitors.
+	// We use List and filter to verify the monitor exists and refresh basic fields.
+	// Full configuration (URL, headers, etc.) is preserved from state.
 	monitors, _, err := r.client.Monitors.List(ctx, data.BoardID.ValueString(), nil)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -243,6 +264,7 @@ func (r *WebsiteMonitorResource) Read(ctx context.Context, req resource.ReadRequ
 	for _, m := range monitors {
 		if m.ID == data.ID.ValueString() && m.Type == statusgator.MonitorTypeWebsite {
 			found = true
+			// Only update fields available in the generic Monitor response
 			data.Name = types.StringValue(m.Name)
 			data.Status = types.StringValue(string(m.Status))
 			data.Paused = types.BoolValue(m.Paused)
@@ -337,7 +359,7 @@ func (r *WebsiteMonitorResource) Delete(ctx context.Context, req resource.Delete
 
 	err := r.client.Monitors.Delete(ctx, data.BoardID.ValueString(), data.ID.ValueString())
 	if err != nil {
-		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+		if statusgator.IsNotFound(err) {
 			return
 		}
 		resp.Diagnostics.AddError(
@@ -348,17 +370,7 @@ func (r *WebsiteMonitorResource) Delete(ctx context.Context, req resource.Delete
 }
 
 func (r *WebsiteMonitorResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.Split(req.ID, "/")
-	if len(parts) != 2 {
-		resp.Diagnostics.AddError(
-			"Invalid Import ID",
-			fmt.Sprintf("Expected import ID format: board_id/monitor_id, got: %s", req.ID),
-		)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("board_id"), parts[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+	importBoardChildState(ctx, req, resp)
 }
 
 func (r *WebsiteMonitorResource) mapMonitorToModel(ctx context.Context, monitor *statusgator.WebsiteMonitor, data *WebsiteMonitorResourceModel, diags *diag.Diagnostics) {
@@ -375,10 +387,14 @@ func (r *WebsiteMonitorResource) mapMonitorToModel(ctx context.Context, monitor 
 
 	if monitor.ContentMatch != "" {
 		data.ContentMatch = types.StringValue(monitor.ContentMatch)
+	} else {
+		data.ContentMatch = types.StringNull()
 	}
 
 	if monitor.GroupID != nil {
 		data.GroupID = types.StringValue(*monitor.GroupID)
+	} else {
+		data.GroupID = types.StringNull()
 	}
 
 	// Convert headers
@@ -390,6 +406,8 @@ func (r *WebsiteMonitorResource) mapMonitorToModel(ctx context.Context, monitor 
 		headerMap, d := types.MapValue(types.StringType, headerElements)
 		diags.Append(d...)
 		data.Headers = headerMap
+	} else {
+		data.Headers = types.MapNull(types.StringType)
 	}
 
 	// Convert regions
@@ -401,5 +419,7 @@ func (r *WebsiteMonitorResource) mapMonitorToModel(ctx context.Context, monitor 
 		regionList, d := types.ListValue(types.StringType, regionElements)
 		diags.Append(d...)
 		data.Regions = regionList
+	} else {
+		data.Regions = types.ListNull(types.StringType)
 	}
 }

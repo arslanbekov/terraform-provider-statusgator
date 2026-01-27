@@ -4,5 +4,5 @@ contact_links:
     url: https://registry.terraform.io/providers/arslanbekov/statusgator/latest/docs
     about: Check the provider documentation
   - name: StatusGator API Docs
-    url: https://statusgator.com/api/v3/docs
+    url: https://statusgator.com/api/v3/docs?utm_source=terraform-provider&utm_medium=github&utm_campaign=statusgator-terraform
     about: StatusGator API documentation

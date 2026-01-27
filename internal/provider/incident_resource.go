@@ -3,17 +3,17 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/arslanbekov/statusgator-go-client/statusgator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -76,10 +76,16 @@ func (r *IncidentResource) Schema(ctx context.Context, req resource.SchemaReques
 			"severity": schema.StringAttribute{
 				Description: "Severity of the incident: minor, major, or maintenance.",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("minor", "major", "maintenance"),
+				},
 			},
 			"phase": schema.StringAttribute{
 				Description: "Phase of the incident: investigating, identified, monitoring, resolved, scheduled, in_progress, verifying, or completed.",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("investigating", "identified", "monitoring", "resolved", "scheduled", "in_progress", "verifying", "completed"),
+				},
 			},
 			"monitor_ids": schema.ListAttribute{
 				Description: "List of affected monitor IDs.",
@@ -107,7 +113,7 @@ func (r *IncidentResource) Configure(ctx context.Context, req resource.Configure
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *statusgator.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *statusgator.Client, got: %T", req.ProviderData),
 		)
 		return
 	}
@@ -275,7 +281,7 @@ func (r *IncidentResource) Delete(ctx context.Context, req resource.DeleteReques
 
 	_, err := r.client.Incidents.AddUpdate(ctx, data.BoardID.ValueString(), data.ID.ValueString(), resolveReq)
 	if err != nil {
-		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+		if statusgator.IsNotFound(err) {
 			return
 		}
 		resp.Diagnostics.AddError(
@@ -286,17 +292,7 @@ func (r *IncidentResource) Delete(ctx context.Context, req resource.DeleteReques
 }
 
 func (r *IncidentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.Split(req.ID, "/")
-	if len(parts) != 2 {
-		resp.Diagnostics.AddError(
-			"Invalid Import ID",
-			fmt.Sprintf("Expected import ID format: board_id/incident_id, got: %s", req.ID),
-		)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("board_id"), parts[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+	importBoardChildState(ctx, req, resp)
 }
 
 func (r *IncidentResource) mapIncidentToModel(ctx context.Context, incident *statusgator.Incident, data *IncidentResourceModel, diags *diag.Diagnostics) {
@@ -319,13 +315,19 @@ func (r *IncidentResource) mapIncidentToModel(ctx context.Context, incident *sta
 		monitorList, d := types.ListValue(types.StringType, monitorElements)
 		diags.Append(d...)
 		data.MonitorIDs = monitorList
+	} else {
+		data.MonitorIDs = types.ListNull(types.StringType)
 	}
 
 	// Convert scheduled times
 	if incident.ScheduledFor != nil {
 		data.ScheduledFor = types.StringValue(incident.ScheduledFor.Format(time.RFC3339))
+	} else {
+		data.ScheduledFor = types.StringNull()
 	}
 	if incident.ScheduledEnd != nil {
 		data.ScheduledEnd = types.StringValue(incident.ScheduledEnd.Format(time.RFC3339))
+	} else {
+		data.ScheduledEnd = types.StringNull()
 	}
 }
