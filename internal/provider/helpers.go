@@ -28,7 +28,7 @@ func importBoardChildState(ctx context.Context, req resource.ImportStateRequest,
 
 // urlRegex returns a compiled regex for validating HTTP/HTTPS URLs.
 func urlRegex() *regexp.Regexp {
-	return regexp.MustCompile(`^https?://[^\s/$.?#].[^\s]*$`)
+	return regexp.MustCompile(`^https?://[^\s/$.?#]\.[^\s]*$`)
 }
 
 // emailRegex returns a compiled regex for validating email addresses.
