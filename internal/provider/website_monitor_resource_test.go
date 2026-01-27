@@ -15,6 +15,11 @@ func TestAccWebsiteMonitorResource(t *testing.T) {
 		t.Skip("STATUSGATOR_TEST_BOARD_ID must be set for acceptance tests")
 	}
 
+	// Skip if account doesn't have website monitor permissions (plan limitation)
+	if os.Getenv("STATUSGATOR_TEST_WEBSITE_MONITORS") != "true" {
+		t.Skip("STATUSGATOR_TEST_WEBSITE_MONITORS must be 'true' to run website monitor tests (requires paid plan)")
+	}
+
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{

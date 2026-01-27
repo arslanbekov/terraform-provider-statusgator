@@ -28,7 +28,7 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: v2.4.0
-          skip-schema-validation: true
+          verify: false
 
   generate:
     runs-on: ubuntu-latest
