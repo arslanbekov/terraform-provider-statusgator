@@ -27,14 +27,14 @@ type IncidentResource struct {
 }
 
 type IncidentResourceModel struct {
-	ID           types.String `tfsdk:"id"`
-	BoardID      types.String `tfsdk:"board_id"`
-	Name         types.String `tfsdk:"name"`
-	Details      types.String `tfsdk:"details"`
-	Severity     types.String `tfsdk:"severity"`
-	Phase        types.String `tfsdk:"phase"`
-	WillStartAt  types.String `tfsdk:"will_start_at"`
-	WillEndAt    types.String `tfsdk:"will_end_at"`
+	ID          types.String `tfsdk:"id"`
+	BoardID     types.String `tfsdk:"board_id"`
+	Name        types.String `tfsdk:"name"`
+	Details     types.String `tfsdk:"details"`
+	Severity    types.String `tfsdk:"severity"`
+	Phase       types.String `tfsdk:"phase"`
+	WillStartAt types.String `tfsdk:"will_start_at"`
+	WillEndAt   types.String `tfsdk:"will_end_at"`
 }
 
 func NewIncidentResource() resource.Resource {
