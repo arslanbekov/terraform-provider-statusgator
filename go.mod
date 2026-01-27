@@ -2,8 +2,6 @@ module github.com/arslanbekov/terraform-provider-statusgator
 
 go 1.25
 
-replace github.com/arslanbekov/statusgator-go-client => /Users/arslanbekov/Projects/github.com/arslanbekov/statusgator-go-client
-
 require (
 	github.com/arslanbekov/statusgator-go-client v1.0.1
 	github.com/hashicorp/terraform-plugin-framework v1.17.0
