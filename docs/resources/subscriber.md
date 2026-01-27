@@ -34,7 +34,7 @@ resource "statusgator_subscriber" "user" {
 ### Required
 
 - `board_id` (String) The ID of the board this subscriber belongs to.
-- `email` (String) The email address of the subscriber.
+- `email` (String) The email address of the subscriber. Must be a valid email format.
 
 ### Optional
 

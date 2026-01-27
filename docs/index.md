@@ -7,7 +7,7 @@ description: |-
 
 # StatusGator Provider
 
-The StatusGator provider allows you to manage [StatusGator](https://statusgator.com) resources using Terraform. StatusGator is a status page aggregator that helps you monitor the status of third-party services and create your own status pages.
+The StatusGator provider allows you to manage [StatusGator](https://statusgator.com?utm_source=terraform-provider&utm_medium=registry&utm_campaign=statusgator-terraform) resources using Terraform. StatusGator is a status page aggregator that helps you monitor the status of third-party services and create your own status pages.
 
 ## Features
 

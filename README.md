@@ -3,7 +3,7 @@
 [![Tests](https://github.com/arslanbekov/terraform-provider-statusgator/workflows/Tests/badge.svg)](https://github.com/arslanbekov/terraform-provider-statusgator/actions)
 [![Go Report Card](https://goreportcard.com/badge/github.com/arslanbekov/terraform-provider-statusgator)](https://goreportcard.com/report/github.com/arslanbekov/terraform-provider-statusgator)
 
-Terraform provider for managing [StatusGator](https://statusgator.com) resources.
+Terraform provider for managing [StatusGator](https://statusgator.com?utm_source=terraform-provider&utm_medium=github&utm_campaign=statusgator-terraform) resources.
 
 ## Requirements
 

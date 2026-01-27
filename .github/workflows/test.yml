@@ -3,10 +3,10 @@ name: Tests
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches:
-      - main
+      - master
 
 permissions:
   contents: read
@@ -27,7 +27,7 @@ jobs:
       - name: Run linters
         uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.4.0
 
   generate:
     runs-on: ubuntu-latest
@@ -64,7 +64,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     env:
       STATUSGATOR_API_TOKEN: ${{ secrets.STATUSGATOR_API_TOKEN }}
       STATUSGATOR_TEST_BOARD_ID: ${{ secrets.STATUSGATOR_TEST_BOARD_ID }}

@@ -3,14 +3,14 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/arslanbekov/statusgator-go-client/statusgator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -70,6 +70,9 @@ func (r *CustomMonitorResource) Schema(ctx context.Context, req resource.SchemaR
 			"status": schema.StringAttribute{
 				Description: "Status of the monitor: up, warn, or down.",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("up", "warn", "down"),
+				},
 			},
 			"group_id": schema.StringAttribute{
 				Description: "The ID of the monitor group this monitor belongs to.",
@@ -88,7 +91,7 @@ func (r *CustomMonitorResource) Configure(ctx context.Context, req resource.Conf
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *statusgator.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *statusgator.Client, got: %T", req.ProviderData),
 		)
 		return
 	}
@@ -236,7 +239,7 @@ func (r *CustomMonitorResource) Delete(ctx context.Context, req resource.DeleteR
 
 	err := r.client.Monitors.Delete(ctx, data.BoardID.ValueString(), data.ID.ValueString())
 	if err != nil {
-		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+		if statusgator.IsNotFound(err) {
 			return
 		}
 		resp.Diagnostics.AddError(
@@ -247,15 +250,5 @@ func (r *CustomMonitorResource) Delete(ctx context.Context, req resource.DeleteR
 }
 
 func (r *CustomMonitorResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.Split(req.ID, "/")
-	if len(parts) != 2 {
-		resp.Diagnostics.AddError(
-			"Invalid Import ID",
-			fmt.Sprintf("Expected import ID format: board_id/monitor_id, got: %s", req.ID),
-		)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("board_id"), parts[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+	importBoardChildState(ctx, req, resp)
 }

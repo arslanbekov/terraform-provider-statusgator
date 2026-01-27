@@ -49,20 +49,20 @@ resource "statusgator_website_monitor" "main_site" {
 ### Required
 
 - `board_id` (String) The ID of the board this monitor belongs to.
-- `check_interval` (Number) Check interval in minutes.
+- `check_interval` (Number) Check interval in minutes. Must be between 1 and 1440.
 - `name` (String) The name of the monitor.
-- `url` (String) The URL to monitor.
+- `url` (String) The URL to monitor. Must be a valid HTTP or HTTPS URL.
 
 ### Optional
 
 - `content_match` (String) String to match in response body.
-- `expected_status` (Number) Expected HTTP status code. Defaults to 200.
+- `expected_status` (Number) Expected HTTP status code. Defaults to 200. Must be between 100 and 599.
 - `follow_redirects` (Boolean) Whether to follow HTTP redirects. Defaults to true.
 - `group_id` (String) The ID of the monitor group this monitor belongs to.
-- `headers` (Map of String) Custom HTTP headers to send.
+- `headers` (Map of String, Sensitive) Custom HTTP headers to send. Note: Headers may contain sensitive data like authentication tokens.
 - `http_method` (String) HTTP method to use. Defaults to GET.
 - `regions` (List of String) List of monitoring regions.
-- `timeout` (Number) Request timeout in seconds. Defaults to 30.
+- `timeout` (Number) Request timeout in seconds. Defaults to 30. Must be between 1 and 120.
 
 ### Read-Only
 

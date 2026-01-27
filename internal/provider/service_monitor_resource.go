@@ -3,10 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/arslanbekov/statusgator-go-client/statusgator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -94,7 +92,7 @@ func (r *ServiceMonitorResource) Configure(ctx context.Context, req resource.Con
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *statusgator.Client, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *statusgator.Client, got: %T", req.ProviderData),
 		)
 		return
 	}
@@ -240,7 +238,7 @@ func (r *ServiceMonitorResource) Delete(ctx context.Context, req resource.Delete
 
 	err := r.client.Monitors.Delete(ctx, data.BoardID.ValueString(), data.ID.ValueString())
 	if err != nil {
-		if strings.Contains(err.Error(), "404") || strings.Contains(err.Error(), "not found") {
+		if statusgator.IsNotFound(err) {
 			return
 		}
 		resp.Diagnostics.AddError(
@@ -251,15 +249,5 @@ func (r *ServiceMonitorResource) Delete(ctx context.Context, req resource.Delete
 }
 
 func (r *ServiceMonitorResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	parts := strings.Split(req.ID, "/")
-	if len(parts) != 2 {
-		resp.Diagnostics.AddError(
-			"Invalid Import ID",
-			fmt.Sprintf("Expected import ID format: board_id/monitor_id, got: %s", req.ID),
-		)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("board_id"), parts[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), parts[1])...)
+	importBoardChildState(ctx, req, resp)
 }
